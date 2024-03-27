@@ -10,13 +10,12 @@ from functools import wraps
 def count_calls(method: Callable) -> Callable:
         """docs"""
         @wraps(method)
-        def wrapper(*args, **kwargs):
+        def wrapper(self, *args, **kwargs):
             """doc"""
-            wrapper.call_count += 1
-            return method(*args, **kwargs)
+            k = method.__qualname__
+            self._redis.incr(k)
+            return method(self, *args, **kwargs)
 
-        wrapper.call_count = 0
-        wrapper.__name__ = f"counted_{method.__qualname__}"
         return wrapper
 
 class Cache():
@@ -27,6 +26,7 @@ class Cache():
         self._redis = redis.Redis(host='localhost', port=6379, db=0)
         self._redis.flushdb()
 
+    @count_calls
     def store(self, data:Union[str, bytes, int, float]) -> str:
         """generate a random key """
         ran_key = str(uuid.uuid4())
