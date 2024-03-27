@@ -18,6 +18,21 @@ def count_calls(method: Callable) -> Callable:
 
         return wrapper
 
+def call_history(method: Callable) -> Callable:
+    """docs"""
+    @wraps(method)
+    def wrapper(self, *args, **kwargs):
+        """docs"""
+        inp = method.__qualname__ + ':inputs'
+        outp = method.__qualname__ + ':outputs'
+
+        self._redis.rpush(inp, str(args))
+        self._redis.rpush(outp, str(method(self, *args, **kwargs)))
+        return method(self, *args, **kwargs)
+
+    return wrapper
+
+
 class Cache():
     """create class cache"""
 
@@ -27,6 +42,7 @@ class Cache():
         self._redis.flushdb()
 
     @count_calls
+    @call_history
     def store(self, data:Union[str, bytes, int, float]) -> str:
         """generate a random key """
         ran_key = str(uuid.uuid4())
